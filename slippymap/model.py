@@ -1,5 +1,4 @@
 import math
-from . import tiles
 from . import proj
 from collections import namedtuple
 
@@ -8,7 +7,7 @@ LatLng = namedtuple('LatLng', ['lat', 'lng'])
 Point = namedtuple('Point', ['x', 'y'])
 Bounds = namedtuple('Bounds', ['minx', 'miny', 'maxx', 'maxy'])
 LatLngBounds = namedtuple('LatLngBounds', ['north', 'east', 'south', 'west'])
-TileRecord = namedtuple('TileRecord', ['url', 'point'])
+TileRecord = namedtuple('TileRecord', ['url', 'point', 'xyz'])
 
 
 class MapModel:
@@ -20,6 +19,13 @@ class MapModel:
         self._lat = lat
         self._zoom = zoom
         self.tile_url = tile_url
+
+    def latlng_to_pixel(self, lat, lng, width, height):
+        bounds = self._get_pixel_bounds(width, height)
+        xy = proj.latlng_to_pixel(lat, lng, self.zoom)
+        x = xy[0] - bounds.minx
+        y = xy[1] - bounds.miny
+        return Point(x, y)
 
     def get_center_pixel(self):
         center = proj.latlng_to_pixel(self.lat, self.lng, self.zoom)
@@ -47,37 +53,37 @@ class MapModel:
         returns the latlng bounds.
         '''
         pbounds = self._get_pixel_bounds(width, height)
-        northwest = proj.pixel_to_latlng(pbounds.minx, pbounds.maxy, zoom)
-        southeast = proj.pixel_to_latlng(pbounds.minx, pbounds.maxx, zoom)
-        return LatLngBounds(north=northwest[0], east=northwest[1], south=southeast[0], west=southeast[1])
+        northwest = proj.pixel_to_latlng(pbounds.miny, pbounds.minx, zoom)
+        southeast = proj.pixel_to_latlng(pbounds.maxy, pbounds.maxx, zoom)
+        return LatLngBounds(north=northwest[0], east=southeast[1], south=southeast[0], west=northwest[1])
         
     def get_tiles(self, width, height):
         '''
         Given the pixel width and height, returns all the tiles that
         need to be rendered as well as their pixel locations.
         '''
+        print("width: {}  height: {}".format(width, height))
         bounds = self._get_latlng_bounds(width, height, self.zoom)
         pixel_bounds = self._get_pixel_bounds(width, height)
-        def create_tile_record(lat, lng, zoom):
-            xtile, ytile = proj.project_to_tilespace(bounds.north, bounds.west, zoom)
+        print(bounds)
+        print(pixel_bounds)
+
+        def create_tile_record(xtile, ytile, zoom):
             url = self._get_url(math.floor(xtile), math.floor(ytile), zoom)
 
             # xy in tilespace
             xy = Point(*proj.tile_to_pixel(xtile, ytile))
             x = xy.x - pixel_bounds.minx
-            y = xy.y - pixel_bounds.maxy
-            return TileRecord(url, Point(x, y))
+            y = xy.y - pixel_bounds.miny
+            return TileRecord(url, Point(x, y), (xtile, ytile, zoom))
 
-        # tl = latlng_to_tile(bounds.north, bounds.west)
-        # tr = latlng_to_tile(bounds.north, bounds.east)
-        # bl = latlng_to_tile(bounds.south, bounds.west)
-        # br = latlng_to_tile(bounds.south, bounds.east)
-
-        
-        
-        return [
-            create_tile_record(bounds.north, bounds.east, self.zoom)
-            ]
+        tl = proj.latlng_to_tile(bounds.north, bounds.west, self.zoom)
+        br = proj.latlng_to_tile(bounds.south, bounds.east, self.zoom)
+        tiles = []
+        for x in range(tl[0] - 1, br[0] + 1):
+            for y in range(tl[1], br[1] + 2):
+                tiles.append(create_tile_record(x, y, self.zoom))
+        return tiles
 
     @property
     def lat(self):

@@ -9,7 +9,7 @@ from PyQt5.QtCore import QCoreApplication
 from slippymap.map import Map
 
 TITLE = 'QT - CFPS Weather Map'
-TILE_URL = "https://plan.beta.navcanada.ca/static/tiles/base/{}/{}/{}.png"
+TILE_URL = "https://www.cfps.halc/static/tiles/base/{}/{}/{}.png"
 
 
 class CFPS(QMainWindow):
@@ -18,20 +18,17 @@ class CFPS(QMainWindow):
         super().__init__()
         self.initUI()
 
-
     def initUI(self):
         self._init_menu()
-        self._init_toolbar()
         self._init_window_icon()
         self._init_window_geom_and_title()
         self.statusBar().showMessage('Ready')
         self.map = Map(TILE_URL, 45.42, -75.69, 4, self)
-
         self.setCentralWidget(self.map)
         self.show()
 
     def _init_window_geom_and_title(self):
-        self.resize(800, 800)
+        self.resize(1000, 1000)
         self.center()
         self.setWindowTitle(TITLE)
 
@@ -55,17 +52,6 @@ class CFPS(QMainWindow):
         menubar = self.menuBar()
         fileMenu = menubar.addMenu('&File')
         fileMenu.addAction(exitAction)
-
-
-    def closeEvent(self, event):
-        reply = QMessageBox.question(self, 'Message',
-            "Are you sure to quit?", QMessageBox.Yes |
-            QMessageBox.No, QMessageBox.No)
-
-        if reply == QMessageBox.Yes:
-            event.accept()
-        else:
-            event.ignore()
 
     def center(self):
         qr = self.frameGeometry()
