@@ -2,52 +2,52 @@
 # -*- coding: utf-8 -*-
 
 import sys
-from PyQt5.QtWidgets import QMainWindow, QApplication, QWidget, QToolTip, QPushButton, QMessageBox, QDesktopWidget, QAction, qApp
+from PyQt5.QtWidgets import QMainWindow, QApplication, QWidget, QToolTip, QPushButton, QMessageBox, QDesktopWidget, QAction, qApp, QVBoxLayout
 from PyQt5.QtGui import QIcon, QFont
 from PyQt5.QtCore import QCoreApplication
 
+from slippymap.map import Map
 
 TITLE = 'QT - CFPS Weather Map'
+TILE_URL = "https://plan.beta.navcanada.ca/static/tiles/base/{}/{}/{}.png"
 
 
 class CFPS(QMainWindow):
-    
+
     def __init__(self):
         super().__init__()
         self.initUI()
-        
-        
+
+
     def initUI(self):
         self._init_menu()
         self._init_toolbar()
-        QToolTip.setFont(QFont('SansSerif', 10))
-        
-        self.setToolTip('This is a <b>QWidget</b> widget')
-        
-        btn = QPushButton('Quit', self)
-        btn.clicked.connect(QCoreApplication.instance().quit)
-        btn.setToolTip('This is a <b>QPushButton</b> widget')
-        btn.resize(btn.sizeHint())
-        btn.move(100, 150)       
-
+        self._init_window_icon()
+        self._init_window_geom_and_title()
         self.statusBar().showMessage('Ready')
-        
-        self.resize(500, 500)
+        self.map = Map(TILE_URL, 45.42, -75.69, 4, self)
+
+        self.setCentralWidget(self.map)
+        self.show()
+
+    def _init_window_geom_and_title(self):
+        self.resize(800, 800)
         self.center()
         self.setWindowTitle(TITLE)
-        self.setWindowIcon(QIcon('icon.png'))        
-        self.show()
+
+    def _init_window_icon(self):
+        self.setWindowIcon(QIcon('icon.png'))
 
     def _init_toolbar(self):
         exitAction = QAction(QIcon('application_exit.png'), 'Exit', self)
         exitAction.setShortcut('Ctrl+Q')
         exitAction.triggered.connect(qApp.quit)
-        
+
         self.toolbar = self.addToolBar('Exit')
         self.toolbar.addAction(exitAction)
 
     def _init_menu(self):
-        exitAction = QAction(QIcon('application_exit.png'), '&Exit', self)        
+        exitAction = QAction(QIcon('application_exit.png'), '&Exit', self)
         exitAction.setShortcut('Ctrl+Q')
         exitAction.setStatusTip('Exit application')
         exitAction.triggered.connect(qApp.quit)
@@ -56,10 +56,10 @@ class CFPS(QMainWindow):
         fileMenu = menubar.addMenu('&File')
         fileMenu.addAction(exitAction)
 
-        
+
     def closeEvent(self, event):
         reply = QMessageBox.question(self, 'Message',
-            "Are you sure to quit?", QMessageBox.Yes | 
+            "Are you sure to quit?", QMessageBox.Yes |
             QMessageBox.No, QMessageBox.No)
 
         if reply == QMessageBox.Yes:
@@ -68,7 +68,6 @@ class CFPS(QMainWindow):
             event.ignore()
 
     def center(self):
-        
         qr = self.frameGeometry()
         cp = QDesktopWidget().availableGeometry().center()
         qr.moveCenter(cp)
@@ -78,4 +77,4 @@ class CFPS(QMainWindow):
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     ex = CFPS()
-    sys.exit(app.exec_())  
+    sys.exit(app.exec_())
