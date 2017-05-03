@@ -37,23 +37,24 @@ class Map(QWidget):
             self.cache[url] = pixmap
             return pixmap
 
-    def paintEvent(self, event):
+    def _draw_tiles(self):
         tiles = self.model.get_tiles(self.width(), self.height())
         qp = QPainter()
 
         qp.begin(self)
-
         for tile in tiles:
             pixmap = self._create_image(tile.url)
             point = QPoint(tile.point.x, tile.point.y)
             qp.drawPixmap(point, pixmap)
             qp.setBrush(QColor(0, 100, 0))
-            #qp.drawRect(tile.point.x, tile.point.y, 5, 5)
             qp.drawText(tile.point.x, tile.point.y, "{}".format(tile.xyz))
-
-            
         qp.end()
 
+    def paintEvent(self, event):
+        #self._draw_tiles()
+        width = self.width()
+        height = self.height()
+        print(self.model._get_tile_bounds(width, height, self.model.zoom))
         point = self.model.latlng_to_pixel(self.model.lat, self.model.lng, self.width(), self.height())
         qp = QPainter()
         qp.begin(self)
@@ -70,15 +71,3 @@ class Map(QWidget):
         qp.setBrush(QColor(200, 0, 0))
         qp.drawRect(point.x, point.y, 10, 10)
         qp.end()
-        
-        # x, y = tiles.latlng_to_pixel(self.model.lat, self.model.lng, self.model.zoom)
-        # tx, ty = tiles.pixels_to_tile(x, y, self.model.zoom)
-
-        # print(x, y, self.model.zoom)
-        # image = self._create_image(tx, ty, self.model.zoom)
-
-        # qp = QPainter()
-        # qp.begin(self)
-        # point = QPoint(0, 0)
-        # qp.drawPixmap(point, image)
-        # qp.end()

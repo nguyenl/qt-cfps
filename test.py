@@ -9,7 +9,7 @@ from PyQt5.QtCore import QCoreApplication
 from slippymap.map import Map
 
 TITLE = 'QT - CFPS Weather Map'
-TILE_URL = "https://www.cfps.halc/static/tiles/base/{}/{}/{}.png"
+TILE_URL = "https://plan.navcanada.ca/static/tiles/base/{}/{}/{}.png"
 
 
 class CFPS(QMainWindow):

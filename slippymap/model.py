@@ -10,6 +10,9 @@ LatLngBounds = namedtuple('LatLngBounds', ['north', 'east', 'south', 'west'])
 TileRecord = namedtuple('TileRecord', ['url', 'point', 'xyz'])
 
 
+TILE_SIZE = 256.0
+
+
 class MapModel:
     '''
     Stores the state of the map widget.
@@ -56,16 +59,26 @@ class MapModel:
         northwest = proj.pixel_to_latlng(pbounds.miny, pbounds.minx, zoom)
         southeast = proj.pixel_to_latlng(pbounds.maxy, pbounds.maxx, zoom)
         return LatLngBounds(north=northwest[0], east=southeast[1], south=southeast[0], west=northwest[1])
+
+    def _get_tile_bounds(self, width, height, zoom):
+        '''
+        Given the width and height of the widget as well as the zoom,
+        returns the tile bounds.
+        '''
+        pbounds = self._get_pixel_bounds(width, height)
+        minx = int(math.floor(pbounds.minx / TILE_SIZE))
+        maxx = int(math.floor(pbounds.maxx / TILE_SIZE))
+        miny = int(math.floor(pbounds.miny / TILE_SIZE))
+        maxy = int(math.floor(pbounds.maxy / TILE_SIZE))
+        return Bounds(minx, miny, maxx, maxy)
         
     def get_tiles(self, width, height):
         '''
         Given the pixel width and height, returns all the tiles that
         need to be rendered as well as their pixel locations.
         '''
-        print("width: {}  height: {}".format(width, height))
-        bounds = self._get_latlng_bounds(width, height, self.zoom)
+        tbounds = self._get_tile_bounds(width, height, self.zoom)
         pixel_bounds = self._get_pixel_bounds(width, height)
-        print(bounds)
         print(pixel_bounds)
 
         def create_tile_record(xtile, ytile, zoom):
@@ -77,11 +90,9 @@ class MapModel:
             y = xy.y - pixel_bounds.miny
             return TileRecord(url, Point(x, y), (xtile, ytile, zoom))
 
-        tl = proj.latlng_to_tile(bounds.north, bounds.west, self.zoom)
-        br = proj.latlng_to_tile(bounds.south, bounds.east, self.zoom)
         tiles = []
-        for x in range(tl[0] - 1, br[0] + 1):
-            for y in range(tl[1], br[1] + 2):
+        for x in range(tbounds.minx, tbounds.maxx + 1):
+            for y in range(tbounds.miny, tbounds.maxy + 1):
                 tiles.append(create_tile_record(x, y, self.zoom))
         return tiles
 
