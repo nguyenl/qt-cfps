@@ -1,7 +1,10 @@
+from collections import OrderedDict
 from PyQt5.QtWidgets import QWidget
-from PyQt5.QtGui import QPainter, QPixmap, QColor
-from PyQt5.QtCore import QPoint, Qt
-import requests
+from PyQt5.QtCore import Qt
+
+from .layers.marker import Marker
+from .layers.tile_names import TileNames
+from .layers.tile_layer import TileLayer
 from .model import MapModel
 
 
@@ -21,53 +24,64 @@ class Map(QWidget):
                 parent: The Parent QWidget for this widget.
         '''
         super().__init__(parent)
-        self.cache = {}
         self.url = tile_url
         self.parent = parent
         self.model = MapModel(tile_url, lat, lng, zoom)
+        self.mouse_down = False
+        self._init_layers()
 
-    def _create_image(self, url):
-        if url in self.cache:
-            return self.cache[url]
+    def wheelEvent(self, event):
+        angle = event.angleDelta().y()
+        if angle > 0:
+            self.model.zoom_in()
         else:
-            r = requests.get(url, verify=False)
-            print(url)
-            pixmap = QPixmap()
-            pixmap.loadFromData(r.content)
-            self.cache[url] = pixmap
-            return pixmap
+            self.model.zoom_out()
+        self.repaint()
 
-    def _draw_tiles(self):
-        tiles = self.model.get_tiles(self.width(), self.height())
-        qp = QPainter()
+    def mousePressEvent(self, event):
+        if event.button() == 1:
+            self.mouse_down = True
+            self._update_mouse_pos(event)
 
-        qp.begin(self)
-        for tile in tiles:
-            pixmap = self._create_image(tile.url)
-            point = QPoint(tile.point.x, tile.point.y)
-            qp.drawPixmap(point, pixmap)
-            qp.setBrush(QColor(0, 100, 0))
-            qp.drawText(tile.point.x, tile.point.y, "{}".format(tile.xyz))
-        qp.end()
+    def mouseReleaseEvent(self, event):
+        if event.button() == 1:
+            self.mouse_down = False
+
+    def mouseMoveEvent(self, event):
+        """
+        Pan the map if the mouse is down.
+        """
+        if self.mouse_down:
+            dx = self.last_x - event.x()
+            dy = self.last_y - event.y()
+            self._update_mouse_pos(event)
+            self.model.pan(self.width(), self.height(), dx, dy)
+            self.repaint()
+
+    def _update_mouse_pos(self, event):
+        self.last_x = event.x()
+        self.last_y = event.y()
+
+    def _init_layers(self):
+        '''
+        Initializes the layer classes.
+        '''
+        self.layers = OrderedDict()
+        self.layers['base'] = TileLayer(self)
+        self.layers['marker'] = Marker(self)
+        self.layers['tilenames'] = TileNames(self)
+        self.layers['tilenames'].enabled = False
+
+    def _draw_layers(self):
+        for name, layer in self.layers.items():
+            if layer.enabled:
+                layer.paint()
+
+    def _update_status_bar(self):
+        self.parent.statusBar().clearMessage()
+        message = "Center: {} {}  Zoom: {}".format(self.model.lat, self.model.lng, self.model.zoom)
+        self.parent.statusBar().showMessage(message)
 
     def paintEvent(self, event):
-        #self._draw_tiles()
-        width = self.width()
-        height = self.height()
-        print(self.model._get_tile_bounds(width, height, self.model.zoom))
-        point = self.model.latlng_to_pixel(self.model.lat, self.model.lng, self.width(), self.height())
-        qp = QPainter()
-        qp.begin(self)
-        qp.setBrush(QColor(200, 0, 0))
-        qp.drawRect(point.x, point.y, 10, 10)
-        qp.end()
-
-        lat = 53.5444
-        lng = -113.4909
-
-        point = self.model.latlng_to_pixel(lat, lng, self.width(), self.height())
-        qp = QPainter()
-        qp.begin(self)
-        qp.setBrush(QColor(200, 0, 0))
-        qp.drawRect(point.x, point.y, 10, 10)
-        qp.end()
+        self._draw_layers()
+        self._update_status_bar()

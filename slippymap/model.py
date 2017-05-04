@@ -8,7 +8,7 @@ Point = namedtuple('Point', ['x', 'y'])
 Bounds = namedtuple('Bounds', ['minx', 'miny', 'maxx', 'maxy'])
 LatLngBounds = namedtuple('LatLngBounds', ['north', 'east', 'south', 'west'])
 TileRecord = namedtuple('TileRecord', ['url', 'point', 'xyz'])
-
+XYZ = namedtuple('XYZ', ['x', 'y', 'z'])
 
 TILE_SIZE = 256.0
 
@@ -37,12 +37,13 @@ class MapModel:
     def _get_url(self, x, y, z):
         return self.tile_url.format(z, x, y)
 
-    def _get_pixel_bounds(self, width, height):
+    def _get_pixel_bounds(self, width, height, center=None):
         '''
         Given the width and height in pixels of the widget, returns
         the pixel bounds in tile coordinates.
         '''
-        center = self.get_center_pixel()
+        if not center:
+            center = self.get_center_pixel()
 
         minx = center.x - (width/2)
         maxx = center.x + (width/2)
@@ -50,14 +51,15 @@ class MapModel:
         maxy = center.y + (height/2)
         return Bounds(minx, miny, maxx, maxy)
 
-    def _get_latlng_bounds(self, width, height, zoom):
+    def _get_latlng_bounds(self, width, height):
         '''
-        Given the height and width of the pixels of the widget,
-        returns the latlng bounds.
+        Returns the bounds of the current widgets in lat/lng
         '''
+        # TODO Fix this. It doesn't work correctly.
+        raise Exception("This method doesn't work corerctly")
         pbounds = self._get_pixel_bounds(width, height)
-        northwest = proj.pixel_to_latlng(pbounds.miny, pbounds.minx, zoom)
-        southeast = proj.pixel_to_latlng(pbounds.maxy, pbounds.maxx, zoom)
+        northwest = proj.pixel_to_latlng(pbounds.miny, pbounds.minx, self.zoom)
+        southeast = proj.pixel_to_latlng(pbounds.maxy, pbounds.maxx, self.zoom)
         return LatLngBounds(north=northwest[0], east=southeast[1], south=southeast[0], west=northwest[1])
 
     def _get_tile_bounds(self, width, height, zoom):
@@ -71,7 +73,7 @@ class MapModel:
         miny = int(math.floor(pbounds.miny / TILE_SIZE))
         maxy = int(math.floor(pbounds.maxy / TILE_SIZE))
         return Bounds(minx, miny, maxx, maxy)
-        
+
     def get_tiles(self, width, height):
         '''
         Given the pixel width and height, returns all the tiles that
@@ -79,7 +81,6 @@ class MapModel:
         '''
         tbounds = self._get_tile_bounds(width, height, self.zoom)
         pixel_bounds = self._get_pixel_bounds(width, height)
-        print(pixel_bounds)
 
         def create_tile_record(xtile, ytile, zoom):
             url = self._get_url(math.floor(xtile), math.floor(ytile), zoom)
@@ -88,13 +89,48 @@ class MapModel:
             xy = Point(*proj.tile_to_pixel(xtile, ytile))
             x = xy.x - pixel_bounds.minx
             y = xy.y - pixel_bounds.miny
-            return TileRecord(url, Point(x, y), (xtile, ytile, zoom))
+            return TileRecord(url, Point(x, y), XYZ(xtile, ytile, zoom))
 
         tiles = []
         for x in range(tbounds.minx, tbounds.maxx + 1):
             for y in range(tbounds.miny, tbounds.maxy + 1):
                 tiles.append(create_tile_record(x, y, self.zoom))
         return tiles
+
+    def zoom_in(self):
+        '''
+        Zooms into the map (increases the zoom level)
+        '''
+        if self.zoom < 10:
+            self.zoom += 1
+
+    def zoom_out(self):
+        '''
+        Zooms out of the map (decreases the zoom level)
+        '''
+        if self.zoom > 4:
+            self.zoom -= 1
+
+    def pan(self, width, height, dx, dy):
+        '''
+        Pans based on the difference of the pixels.
+        '''
+        pan_modifier = 2 ** (self.zoom - 1)
+
+        dlat = dy / pan_modifier
+        dlng = dx / pan_modifier
+
+        # We lock the panning at the edges of the world (no wrapping, sorry)
+        xy = proj.latlng_to_pixel(self.lat - dlat, self.lng - dlng, self.zoom)
+        center = Point(*xy)
+        bounds = self._get_pixel_bounds(width, height, center)
+        max_res = TILE_SIZE * (2 ** self.zoom)
+
+        if (bounds.minx > -180 or dlng > 0) and (bounds.maxx < max_res or dlng < 0):
+            self.lng += dlng
+
+        if bounds.miny > 0 and bounds.maxy < max_res:
+            self.lat -= dlat
 
     @property
     def lat(self):

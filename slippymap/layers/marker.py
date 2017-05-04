@@ -12,13 +12,13 @@ class Marker(Layer):
         point = self.parent.model.latlng_to_pixel(self.parent.model.lat, self.parent.model.lng, width, height)
         qp = QPainter()
         qp.begin(self.parent)
-        qp.setBrush(QColor(200, 0, 0))
-        qp.drawRect(point.x, point.y, 10, 10)
+        qp.setBrush(QColor(0, 200, 0))
+        qp.drawRect(point.x - 5, point.y - 5, 10, 10)
 
         lat = 53.5444
         lng = -113.4909
 
         point = self.parent.model.latlng_to_pixel(lat, lng, width, height)
         qp.setBrush(QColor(200, 0, 0))
-        qp.drawRect(point.x, point.y, 10, 10)
+        qp.drawRect(point.x - 5, point.y - 5, 10, 10)
         qp.end()
