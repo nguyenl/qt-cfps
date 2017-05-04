@@ -15,15 +15,8 @@ class TileLayer(Layer):
     def __init__(self, parent, url=None):
         super().__init__(parent)
         self.url = url
-        self.tile_dir = TILE_DIR
         self.model = parent.model
         self.cache = {}
-
-    def night_action_event(self, use_night):
-        if use_night:
-            self.tile_dir = NIGHT_TILE_DIR
-        else:
-            self.tile_dir = TILE_DIR
 
     def _get_tile_pixmap(self, tile):
         if self.url:
@@ -32,7 +25,11 @@ class TileLayer(Layer):
             return self._get_pixmap_from_file(tile.xyz)
 
     def _get_pixmap_from_file(self, xyz):
-        path = self.tile_dir.format(xyz.z, xyz.x, xyz.y)
+        tile_dir = TILE_DIR
+        if self.parent.model.is_night:
+            tile_dir = NIGHT_TILE_DIR
+        
+        path = tile_dir.format(xyz.z, xyz.x, xyz.y)
         pixmap = QPixmap()
         pixmap.load(path)
         return pixmap

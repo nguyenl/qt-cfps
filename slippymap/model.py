@@ -22,6 +22,7 @@ class MapModel:
         self._lat = lat
         self._zoom = zoom
         self.tile_url = tile_url
+        self._is_night = False
 
     def latlng_to_pixel(self, lat, lng, width, height):
         bounds = self._get_pixel_bounds(width, height)
@@ -51,15 +52,13 @@ class MapModel:
         maxy = center.y + (height/2)
         return Bounds(minx, miny, maxx, maxy)
 
-    def _get_latlng_bounds(self, width, height):
+    def get_latlng_bounds(self, width, height):
         '''
         Returns the bounds of the current widgets in lat/lng
         '''
-        # TODO Fix this. It doesn't work correctly.
-        raise Exception("This method doesn't work corerctly")
         pbounds = self._get_pixel_bounds(width, height)
-        northwest = proj.pixel_to_latlng(pbounds.miny, pbounds.minx, self.zoom)
-        southeast = proj.pixel_to_latlng(pbounds.maxy, pbounds.maxx, self.zoom)
+        northwest = proj.pixel_to_latlng(pbounds.minx, pbounds.miny, self.zoom)
+        southeast = proj.pixel_to_latlng(pbounds.maxx, pbounds.maxy, self.zoom)
         return LatLngBounds(north=northwest[0], east=southeast[1], south=southeast[0], west=northwest[1])
 
     def _get_tile_bounds(self, width, height, zoom):
@@ -131,6 +130,14 @@ class MapModel:
 
         if bounds.miny > 0 and bounds.maxy < max_res:
             self.lat -= dlat
+
+    @property
+    def is_night(self):
+        return self._is_night;
+
+    @is_night.setter
+    def is_night(self, value):
+        self._is_night = value
 
     @property
     def lat(self):

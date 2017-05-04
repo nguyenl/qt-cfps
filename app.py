@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 
 import sys
-from PyQt5.QtWidgets import QMainWindow, QApplication, QWidget, QToolTip, QPushButton, QMessageBox, QDesktopWidget, QAction, qApp, QVBoxLayout
-from PyQt5.QtGui import QIcon, QFont
-from PyQt5.QtCore import QCoreApplication
+from PyQt5.QtWidgets import QMainWindow, QApplication, QDesktopWidget, QAction, qApp
+from PyQt5.QtGui import QIcon
+
 
 from slippymap.map import Map
 
@@ -49,10 +49,26 @@ class CFPS(QMainWindow):
         exitAction.triggered.connect(qApp.quit)
 
         nightAction = QAction('&Use Night Tiles', self)
-        nightAction.triggered.connect(self.map.get_layer('base').night_action_event)
+        nightAction.triggered.connect(self._night_action_event)
         nightAction.triggered.connect(self.map.repaint)
         nightAction.setCheckable(True)
         nightAction.setChecked(False)
+
+        siteAction = QAction('&Site Layer', self)
+        siteAction.triggered.connect(self._site_action_event)
+        siteAction.triggered.connect(self.map.repaint)
+        siteAction.setCheckable(True)
+        siteAction.setChecked(True)
+
+        metarAction = QAction('&METAR Layer', self)
+        metarAction.triggered.connect(self._metar_action_event)
+        metarAction.triggered.connect(self.map.repaint)
+        metarAction.setCheckable(True)
+        metarAction.setChecked(True)
+
+        refreshAction = QAction('&Refresh Layers', self)
+        refreshAction.triggered.connect(self._refresh_action_event)
+        refreshAction.triggered.connect(self.map.repaint)
 
         menubar = self.menuBar()
         fileMenu = menubar.addMenu('&File')
@@ -60,6 +76,21 @@ class CFPS(QMainWindow):
 
         mapMenu = menubar.addMenu('&Map')
         mapMenu.addAction(nightAction)
+        mapMenu.addAction(siteAction)
+        mapMenu.addAction(metarAction)
+        mapMenu.addAction(refreshAction)
+
+    def _night_action_event(self, is_night):
+        self.map.model.is_night = is_night
+
+    def _site_action_event(self, is_enabled):
+        self.map.get_layer('site').enabled = is_enabled
+
+    def _metar_action_event(self, is_enabled):
+        self.map.get_layer('metar').enabled = is_enabled
+
+    def _refresh_action_event(self):
+        self.map.fetch_layers()
 
     def center(self):
         qr = self.frameGeometry()

@@ -5,6 +5,8 @@ from PyQt5.QtCore import Qt
 from .layers.marker import Marker
 from .layers.tile_names import TileNames
 from .layers.tile_layer import TileLayer
+from .layers.site_layer import SiteLayer
+from .layers.metar_layer import MetarLayer
 from .model import MapModel
 
 
@@ -36,6 +38,7 @@ class Map(QWidget):
             self.model.zoom_in()
         else:
             self.model.zoom_out()
+        #self._fetch_layers()
         self.repaint()
 
     def mousePressEvent(self, event):
@@ -46,6 +49,7 @@ class Map(QWidget):
     def mouseReleaseEvent(self, event):
         if event.button() == 1:
             self.mouse_down = False
+            self.repaint()
 
     def mouseMoveEvent(self, event):
         """
@@ -71,9 +75,18 @@ class Map(QWidget):
         '''
         self.layers = OrderedDict()
         self.layers['base'] = TileLayer(self)
-        self.layers['marker'] = Marker(self)
-        self.layers['tilenames'] = TileNames(self)
-        self.layers['tilenames'].enabled = False
+        #self.layers['marker'] = Marker(self)
+        #self.layers['tilenames'] = TileNames(self)
+
+        self.layers['site'] = SiteLayer(self)
+        self.layers['metar'] = MetarLayer(self)
+        self.fetch_layers()
+
+    def fetch_layers(self):
+        if self.layers['site'].enabled:
+            self.layers['site'].fetch()
+        if self.layers['metar'].enabled:
+            self.layers['metar'].fetch()
 
     def _draw_layers(self):
         for name, layer in self.layers.items():
