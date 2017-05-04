@@ -58,6 +58,9 @@ class Map(QWidget):
             self.model.pan(self.width(), self.height(), dx, dy)
             self.repaint()
 
+    def get_layer(self, layername):
+        return self.layers[layername]
+
     def _update_mouse_pos(self, event):
         self.last_x = event.x()
         self.last_y = event.y()

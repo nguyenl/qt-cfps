@@ -19,10 +19,10 @@ class CFPS(QMainWindow):
         self.initUI()
 
     def initUI(self):
+        self.map = Map(TILE_URL, 45.42, -75.69, 4, self)
         self._init_menu()
         self._init_window_icon()
         self._init_window_geom_and_title()
-        self.map = Map(TILE_URL, 45.42, -75.69, 4, self)
         self.setCentralWidget(self.map)
         self.show()
 
@@ -48,9 +48,18 @@ class CFPS(QMainWindow):
         exitAction.setStatusTip('Exit application')
         exitAction.triggered.connect(qApp.quit)
 
+        nightAction = QAction('&Use Night Tiles', self)
+        nightAction.triggered.connect(self.map.get_layer('base').night_action_event)
+        nightAction.triggered.connect(self.map.repaint)
+        nightAction.setCheckable(True)
+        nightAction.setChecked(False)
+
         menubar = self.menuBar()
         fileMenu = menubar.addMenu('&File')
         fileMenu.addAction(exitAction)
+
+        mapMenu = menubar.addMenu('&Map')
+        mapMenu.addAction(nightAction)
 
     def center(self):
         qr = self.frameGeometry()
